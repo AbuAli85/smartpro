@@ -1,0 +1,23 @@
+echo { > package.json
+echo   "name": "smartpro", >> package.json
+echo   "version": "0.1.0", >> package.json
+echo   "private": true, >> package.json
+echo   "scripts": { >> package.json
+echo     "dev": "next dev", >> package.json
+echo     "build": "next build", >> package.json
+echo     "start": "next start", >> package.json
+echo     "lint": "next lint", >> package.json
+echo     "vercel-build": "next build" >> package.json
+echo   }, >> package.json
+echo   "dependencies": { >> package.json
+echo     "next": "14.2.16", >> package.json
+echo     "react": "^18", >> package.json
+echo     "react-dom": "^18" >> package.json
+echo   }, >> package.json
+echo   "devDependencies": { >> package.json
+echo     "@types/node": "^20", >> package.json
+echo     "@types/react": "^18", >> package.json
+echo     "@types/react-dom": "^18", >> package.json
+echo     "typescript": "^5" >> package.json
+echo   } >> package.json
+echo } >> package.json
