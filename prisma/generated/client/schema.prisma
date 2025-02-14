@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  lastLoginAt   DateTime?
+  services      Service[]
+  reviews       Review[]
+  orders        Order[]
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  status      ServiceStatus @default(ACTIVE)
+  categoryId  String
+  providerId  String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id])
+  provider User     @relation(fields: [providerId], references: [id])
+  orders   Order[]
+  reviews  Review[]
+
+  @@index([categoryId])
+  @@index([providerId])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  slug        String    @unique
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  serviceId String
+  status    OrderStatus @default(PENDING)
+  amount    Float
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  service Service  @relation(fields: [serviceId], references: [id])
+  reviews Review[]
+
+  @@index([userId])
+  @@index([serviceId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  userId    String
+  serviceId String
+  orderId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@index([serviceId])
+  @@index([orderId])
+}
+
+enum Role {
+  USER
+  PROVIDER
+  ADMIN
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  COMPLETED
+  CANCELLED
+}
