@@ -1,0 +1,63 @@
+"use client"
+
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/use-toast"
+
+const schema = z.object({
+  email: z.string().email({ message: "Invalid email address" }),
+})
+
+type ForgotPasswordForm = z.infer<typeof schema>
+
+export default function ForgotPasswordPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordForm>({
+    resolver: zodResolver(schema),
+  })
+
+  const onSubmit = async (data: ForgotPasswordForm) => {
+    setIsLoading(true)
+    try {
+      // Implement your forgot password logic here
+      console.log("Forgot password for:", data.email)
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your inbox for further instructions.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="max-w-md mx-auto mt-8">
+      <h1 className="text-2xl font-bold mb-4">Forgot Password</h1>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <Input type="email" placeholder="Enter your email" {...register("email")} />
+          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+        </div>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Sending..." : "Reset Password"}
+        </Button>
+      </form>
+    </div>
+  )
+}
+
