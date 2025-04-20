@@ -2,114 +2,150 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-    "Helvetica Neue", sans-serif;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* Chart colors */
+    --chart-1: 222.2 47.4% 11.2%;
+    --chart-2: 215.4 16.3% 46.9%;
+    --chart-3: 210 40% 96.1%;
+    --chart-4: 210 40% 98%;
+    --chart-5: 0 0% 100%;
+
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 222.2 47.4% 11.2%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96.1%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Chart colors - dark mode */
+    --chart-1: 210 40% 98%;
+    --chart-2: 215 20.2% 65.1%;
+    --chart-3: 217.2 32.6% 17.5%;
+    --chart-4: 222.2 47.4% 11.2%;
+    --chart-5: 222.2 84% 4.9%;
+
+    /* Sidebar colors - dark mode */
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
+  }
 }
 
-/* RTL Support */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles for bilingual contract display */
 .rtl {
   direction: rtl;
-  text-align: right;
 }
 
-.ltr {
-  direction: ltr;
-  text-align: left;
+.bilingual-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
 }
 
-/* Ensure form elements in RTL mode have proper alignment */
-.rtl input,
-.rtl select,
-.rtl textarea {
-  text-align: right;
+@media (max-width: 768px) {
+  .bilingual-container {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* Fix button icon alignment in RTL */
-.rtl button svg {
-  margin-left: 0;
-  margin-right: 0.25rem;
+/* Font settings for different languages */
+.font-arabic {
+  font-family: "Noto Sans Arabic", sans-serif;
 }
 
-/* Adjust form layout in RTL mode */
-.rtl .space-x-4 > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
+.font-latin {
+  font-family: "Noto Sans", sans-serif;
 }
 
-/* Signature Canvas Styles */
-.signature-canvas {
-  touch-action: none;
-  cursor: crosshair;
-}
+/* Print styles for contracts */
+@media print {
+  .no-print {
+    display: none !important;
+  }
 
-/* Multi-step form progress indicator */
-.step-indicator {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 2rem;
-}
+  .print-only {
+    display: block !important;
+  }
 
-.step {
-  flex: 1;
-  text-align: center;
-  position: relative;
-}
-
-.step:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 2px;
-  background-color: #e5e7eb;
-  z-index: -1;
-}
-
-.step.active:not(:last-child)::after {
-  background-color: #3b82f6;
-}
-
-.step.completed:not(:last-child)::after {
-  background-color: #10b981;
-}
-
-.step-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 9999px;
-  background-color: white;
-  border: 2px solid #e5e7eb;
-  margin: 0 auto;
-}
-
-.step.active .step-circle {
-  border-color: #3b82f6;
-  color: #3b82f6;
-}
-
-.step.completed .step-circle {
-  background-color: #10b981;
-  border-color: #10b981;
-  color: white;
-}
-
-.step-text {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.step.active .step-text {
-  color: #3b82f6;
-  font-weight: 500;
-}
-
-.step.completed .step-text {
-  color: #10b981;
+  .page-break {
+    page-break-after: always;
+  }
 }
