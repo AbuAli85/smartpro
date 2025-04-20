@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs"
 
 // Set user information for better error context
-export const identifyUser = (user: { id: string; email: string; role?: string }) => {
+export function identifyUser(user: { id: string; email: string; role?: string }): void {
   Sentry.setUser({
     id: user.id,
     email: user.email,
@@ -10,13 +10,13 @@ export const identifyUser = (user: { id: string; email: string; role?: string })
 }
 
 // Clear user information (e.g., on logout)
-export const clearUserIdentity = () => {
+export function clearUserIdentity(): void {
   Sentry.setUser(null)
 }
 
 // Manually capture an error with additional context
-export const captureError = (error: Error, context?: Record<string, any>) => {
-  Sentry.withScope((scope) => {
+export function captureError(error: Error, context?: Record<string, any>): string {
+  return Sentry.withScope((scope) => {
     if (context) {
       Object.entries(context).forEach(([key, value]) => {
         scope.setExtra(key, value)
@@ -27,7 +27,7 @@ export const captureError = (error: Error, context?: Record<string, any>) => {
 }
 
 // Set a breadcrumb to track user actions
-export const addBreadcrumb = (message: string, category = "user-action", level: Sentry.SeverityLevel = "info") => {
+export function addBreadcrumb(message: string, category = "user-action", level: Sentry.SeverityLevel = "info"): void {
   Sentry.addBreadcrumb({
     message,
     category,
@@ -52,6 +52,7 @@ export async function trackPerformance<T>(
     transaction.setStatus("ok")
     return result
   } catch (error: any) {
+    Sentry.captureException(error)
     transaction.setStatus("internal_error")
     throw error
   } finally {
