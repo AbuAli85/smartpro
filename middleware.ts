@@ -1,81 +1,40 @@
-import { withAuth } from "next-auth/middleware"
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
-import { UserRole } from "@prisma/client"
+import type { NextRequest } from "next/server"
 
-// Define public routes that don't require authentication
-const publicRoutes = ["/", "/signin", "/register", "/auth/verify-email"]
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
 
-// Define role-specific routes
-const roleRoutes = {
-  [UserRole.ADMIN]: ["/dashboard/admin"],
-  [UserRole.PROVIDER]: ["/dashboard/provider"],
-  [UserRole.CLIENT]: ["/dashboard/client"],
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Check if the request is for a protected route
+  const isProtectedRoute =
+    req.nextUrl.pathname.startsWith("/dashboard") ||
+    req.nextUrl.pathname.startsWith("/contracts") ||
+    req.nextUrl.pathname.startsWith("/templates") ||
+    req.nextUrl.pathname.startsWith("/approvals")
+
+  // If accessing a protected route without a session, redirect to login
+  if (isProtectedRoute && !session) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = "/login"
+    redirectUrl.searchParams.set("redirectedFrom", req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // If accessing login/register pages with a session, redirect to dashboard
+  if ((req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/register") && session) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = "/dashboard"
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  return res
 }
-
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token
-    const path = req.nextUrl.pathname
-
-    // Allow public assets and API routes
-    if (path.startsWith("/_next") || path.startsWith("/api/") || path.includes(".") || path === "/favicon.ico") {
-      return NextResponse.next()
-    }
-
-    // Allow public routes
-    if (publicRoutes.includes(path)) {
-      // Redirect authenticated users away from auth pages
-      if (token && (path === "/signin" || path === "/register")) {
-        return NextResponse.redirect(new URL("/dashboard", req.url))
-      }
-      return NextResponse.next()
-    }
-
-    // Handle unauthenticated users
-    if (!token) {
-      const from = encodeURIComponent(path)
-      return NextResponse.redirect(new URL(`/signin?from=${from}`, req.url))
-    }
-
-    // Allow access to role selection for users without a role
-    if (!token.role && path === "/role-selection") {
-      return NextResponse.next()
-    }
-
-    // Redirect users without a role to role selection
-    if (!token.role) {
-      return NextResponse.redirect(new URL("/role-selection", req.url))
-    }
-
-    // Handle dashboard routes
-    if (path === "/dashboard") {
-      const dashboardMap = {
-        [UserRole.ADMIN]: "/dashboard/admin",
-        [UserRole.PROVIDER]: "/dashboard/provider",
-        [UserRole.CLIENT]: "/dashboard/client",
-      }
-      return NextResponse.redirect(new URL(dashboardMap[token.role as UserRole], req.url))
-    }
-
-    // Check role-specific route access
-    const userRole = token.role as UserRole
-    const allowedRoutes = roleRoutes[userRole] || []
-    const isAllowedRoute = allowedRoutes.some((route) => path.startsWith(route))
-
-    if (!isAllowedRoute) {
-      return NextResponse.redirect(new URL("/unauthorized", req.url))
-    }
-
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
-  },
-)
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/dashboard/:path*", "/contracts/:path*", "/templates/:path*", "/approvals/:path*", "/login", "/register"],
 }
-
