@@ -12,10 +12,6 @@ export async function POST(request: NextRequest) {
       data: { session },
     } = await supabase.auth.getSession()
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     // Get request body
     const body = await request.json()
     const { contractId } = body
@@ -31,8 +27,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Contract not found" }, { status: 404 })
     }
 
-    // Check if user has permission
-    if (contract.user_id !== session.user.id) {
+    // Check if user has permission - safely access user ID
+    const userId = session?.user?.id || ""
+    if (!userId || contract.user_id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest) {
     )
 
     // Upload PDF to Supabase Storage
-    const pdfUrl = await storageService.uploadPdf(session.user.id, pdfBlob)
+    const pdfUrl = await storageService.uploadPdf(userId, pdfBlob)
 
     // Update contract with PDF URL
     await contractService.updateContractWithPdf(contractId, pdfUrl)

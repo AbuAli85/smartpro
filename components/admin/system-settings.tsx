@@ -123,7 +123,7 @@ export default function SystemSettings({ adminId }: { adminId: string }) {
                   <Switch
                     id="requireTwoFactorAuth"
                     checked={settings.requireTwoFactorAuth}
-                    onCheckedChange={(checked) => setSettings({ ...settings, requireTwoFactorAuth: checked })}
+                    onCheckedChange={(checked: boolean) => setSettings({ ...settings, requireTwoFactorAuth: checked })}
                   />
                 </div>
 
@@ -135,7 +135,7 @@ export default function SystemSettings({ adminId }: { adminId: string }) {
                   <Switch
                     id="enableAutoApprovals"
                     checked={settings.enableAutoApprovals}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableAutoApprovals: checked })}
+                    onCheckedChange={(checked: boolean) => setSettings({ ...settings, enableAutoApprovals: checked })}
                   />
                 </div>
               </div>
@@ -157,7 +157,9 @@ export default function SystemSettings({ adminId }: { adminId: string }) {
                   <Switch
                     id="enableEmailNotifications"
                     checked={settings.enableEmailNotifications}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableEmailNotifications: checked })}
+                    onCheckedChange={(checked: boolean) =>
+                      setSettings({ ...settings, enableEmailNotifications: checked })
+                    }
                   />
                 </div>
               </div>

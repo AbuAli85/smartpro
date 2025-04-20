@@ -1,50 +1,47 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
-export default function Register() {
-  const [name, setName] = useState("")
+export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectedFrom = searchParams.get("redirectedFrom") || "/"
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-
-    // Basic validation
-    if (!name || !email || !password) {
-      setError("Please fill in all required fields")
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return
-    }
-
     setIsLoading(true)
 
-    // For demo purposes, we'll just use localStorage
+    // Simple validation
+    if (!email || !password) {
+      setError("Please enter both email and password")
+      setIsLoading(false)
+      return
+    }
+
+    // For demo purposes, we'll just use localStorage instead of sessionStorage
+    // to make it persist across page refreshes
     try {
       // Simulate a delay
       setTimeout(() => {
         // Store user info in localStorage
         localStorage.setItem("isAuthenticated", "true")
         localStorage.setItem("userEmail", email)
-        localStorage.setItem("userName", name)
 
-        // Redirect to dashboard
-        router.push("/dashboard")
+        // Redirect to the original destination
+        router.push(redirectedFrom)
       }, 1000)
     } catch (err) {
-      setError("Registration failed. Please try again.")
+      setError("Login failed. Please try again.")
       setIsLoading(false)
     }
   }
@@ -52,25 +49,11 @@ export default function Register() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Register</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
 
         {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="John Doe"
-            />
-          </div>
-
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -99,36 +82,27 @@ export default function Register() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
             <button
               type="submit"
               disabled={isLoading}
               className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Registering..." : "Register"}
+              {isLoading ? "Logging in..." : "Login"}
             </button>
           </div>
         </form>
 
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-500 hover:text-blue-700">
-              Login
+            Don't have an account?{" "}
+            <Link href="/register" className="text-blue-500 hover:text-blue-700">
+              Register
             </Link>
           </p>
+        </div>
+
+        <div className="mt-6 border-t pt-4">
+          <p className="text-xs text-gray-500 text-center">For testing: Enter any email and password</p>
         </div>
       </div>
     </div>

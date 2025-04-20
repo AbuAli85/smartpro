@@ -8,7 +8,7 @@ import { Clock } from "lucide-react"
 export default function ReminderNotificationPanel() {
   const [reminderFrequency, setReminderFrequency] = useState("daily")
 
-  const handleFrequencyChange = (frequency) => {
+  const handleFrequencyChange = (frequency: "daily" | "weekly" | "never") => {
     setReminderFrequency(frequency)
     // In a real application, you would update the reminder frequency in the database
     console.log(`Reminder frequency set to: ${frequency}`)

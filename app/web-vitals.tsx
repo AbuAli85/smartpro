@@ -13,8 +13,8 @@ export function WebVitalsReporter() {
     }
 
     // Send to Sentry as well for correlation with errors
-    Sentry.metrics.mark(`web-vital.${metric.name}`, {
-      value: metric.value,
+    // Using distribution instead of mark which doesn't exist in this version
+    Sentry.metrics.distribution(`web-vital.${metric.name}`, metric.value, {
       tags: {
         page: window.location.pathname,
       },

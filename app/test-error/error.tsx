@@ -1,10 +1,12 @@
 "use client"
 
-export default function TestError(props) {
-  // Access props directly without destructuring
-  const error = props.error
-  const reset = props.reset
-
+export default function TestError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
   // Log error as string to avoid any object access issues
   console.log("Test error:", String(error))
 

@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, RefreshCw } from "lucide-react"
+import { captureException } from "@/lib/sentry"
 
 interface ErrorBoundaryProps {
   children: React.ReactNode
@@ -20,6 +20,11 @@ export function ErrorBoundary({ children, fallback }: ErrorBoundaryProps) {
       console.error("Error caught by error boundary:", error)
       setError(error.error)
       setHasError(true)
+
+      // Log the error using our simplified tracking
+      if (error.error instanceof Error) {
+        captureException(error.error)
+      }
     }
 
     window.addEventListener("error", errorHandler)
