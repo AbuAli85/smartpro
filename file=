@@ -1,8 +1,0 @@
-package.json""{
-  "dependencies": {
-    "react-signature-canvas": "^1.0.6",
-    "@types/react-signature-canvas": "^1.0.2",
-    "jspdf": "^2.5.1",
-    "date-fns": "^2.30.0"
-  }
-}
