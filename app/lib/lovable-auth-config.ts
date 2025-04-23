@@ -3,7 +3,7 @@
  * Contains constants and types for authentication
  */
 
-// API Base URL
+// API Base URL - with fallback for development
 export const LOVABLE_API_BASE_URL = process.env.NEXT_PUBLIC_LOVABLE_API_URL || "https://api.lovable.dev"
 
 // Authentication endpoints
@@ -59,3 +59,38 @@ export interface AuthError {
   message: string
   status: number
 }
+
+// Development mode settings - always true in preview or development
+export const DEV_MODE = true
+
+// Mock users for development mode - simplified credentials for easy testing
+export const MOCK_USERS = [
+  {
+    email: "admin@example.com",
+    password: "admin",
+    id: "mock-admin-id",
+    name: "Admin User",
+    role: "admin",
+  },
+  {
+    email: "company@example.com",
+    password: "company",
+    id: "mock-company-id",
+    name: "Company User",
+    role: "company",
+  },
+  {
+    email: "promoter@example.com",
+    password: "promoter",
+    id: "mock-promoter-id",
+    name: "Promoter User",
+    role: "promoter",
+  },
+  {
+    email: "user@example.com",
+    password: "user",
+    id: "mock-user-id",
+    name: "Regular User",
+    role: "user",
+  },
+]

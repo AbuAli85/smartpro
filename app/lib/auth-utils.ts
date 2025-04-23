@@ -1,29 +1,29 @@
 /**
- * Authentication utilities for lovable.dev API
+ * Authentication utilities for Supabase Auth
  * Handles token management, authentication headers, and refresh logic
  */
 
-import {
-  STORAGE_KEYS,
-  AUTH_ENDPOINTS,
-  TOKEN_REFRESH,
-  type AuthTokens,
-  type RefreshResponse,
-  type AuthError,
-} from "./lovable-auth-config"
+import { createClient } from "@supabase/supabase-js"
+import { STORAGE_KEYS } from "./lovable-auth-config"
+import { UserRole } from "@/types/auth"
 
-/**
- * Store authentication tokens securely
- */
-export function storeAuthTokens(tokens: AuthTokens): void {
-  if (typeof window === "undefined") return
+// Create a singleton instance of the Supabase client
+let supabaseInstance: ReturnType<typeof createClient> | null = null
 
-  const { accessToken, refreshToken, expiresIn } = tokens
-  const expiryTime = Date.now() + expiresIn * 1000
+// Initialize Supabase client
+export function getSupabaseClient() {
+  if (!supabaseInstance && typeof window !== "undefined") {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
-  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
-  localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString())
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing Supabase environment variables")
+      return null
+    }
+
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return supabaseInstance
 }
 
 /**
@@ -32,105 +32,53 @@ export function storeAuthTokens(tokens: AuthTokens): void {
 export function clearAuthTokens(): void {
   if (typeof window === "undefined") return
 
-  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
-  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-  localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY)
+  const supabase = getSupabaseClient()
+  if (supabase) {
+    // Sign out from Supabase
+    supabase.auth.signOut()
+  }
+
+  // Clear local storage items
   localStorage.removeItem(STORAGE_KEYS.USER_DATA)
-}
-
-/**
- * Get the current access token, refreshing if necessary
- */
-export async function getAccessToken(): Promise<string | null> {
-  if (typeof window === "undefined") return null
-
-  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
-  const expiryTime = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY)
-
-  // If no token exists, return null
-  if (!token || !expiryTime) return null
-
-  // Check if token is expired or about to expire
-  const isExpiringSoon = Date.now() > Number.parseInt(expiryTime) - TOKEN_REFRESH.REFRESH_BEFORE_EXPIRY_MS
-
-  if (isExpiringSoon) {
-    // Try to refresh the token
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
-    if (!refreshToken) return null
-
-    try {
-      const newTokens = await refreshAuthToken(refreshToken)
-      if (newTokens) {
-        // Update only the access token and expiry, keep the same refresh token
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newTokens.accessToken)
-        const newExpiryTime = Date.now() + newTokens.expiresIn * 1000
-        localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, newExpiryTime.toString())
-        return newTokens.accessToken
-      }
-      return null
-    } catch (error) {
-      console.error("Failed to refresh token:", error)
-      clearAuthTokens()
-      return null
-    }
-  }
-
-  return token
-}
-
-/**
- * Refresh the authentication token
- */
-async function refreshAuthToken(refreshToken: string): Promise<RefreshResponse | null> {
-  try {
-    const response = await fetch(AUTH_ENDPOINTS.REFRESH, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    })
-
-    if (!response.ok) {
-      const errorData = (await response.json()) as AuthError
-      throw new Error(errorData.message || "Failed to refresh token")
-    }
-
-    return (await response.json()) as RefreshResponse
-  } catch (error) {
-    console.error("Error refreshing token:", error)
-    return null
-  }
 }
 
 /**
  * Check if the user is authenticated
  */
-export function isAuthenticated(): boolean {
+export async function isAuthenticated(): Promise<boolean> {
   if (typeof window === "undefined") return false
 
-  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
-  const expiryTime = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY)
+  const supabase = getSupabaseClient()
+  if (!supabase) return false
 
-  if (!token || !expiryTime) return false
-
-  return Date.now() < Number.parseInt(expiryTime)
+  // Check if we have a session using getSession() which returns a Promise
+  const { data } = await supabase.auth.getSession()
+  return !!data.session
 }
 
 /**
  * Get authentication headers for API requests
  */
 export async function getAuthHeaders(): Promise<Record<string, string>> {
-  const token = await getAccessToken()
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return {
+      "Content-Type": "application/json",
+    }
+  }
 
-  if (!token) {
+  // Get session using getSession()
+  const { data } = await supabase.auth.getSession()
+  const session = data.session
+
+  if (!session) {
     return {
       "Content-Type": "application/json",
     }
   }
 
   return {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${session.access_token}`,
     "Content-Type": "application/json",
   }
 }
@@ -139,25 +87,44 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
  * Login user with email and password
  */
 export async function loginWithEmailPassword(email: string, password: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error("Supabase client not initialized")
+  }
+
   try {
-    const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     })
 
-    if (!response.ok) {
-      const errorData = (await response.json()) as AuthError
-      throw new Error(errorData.message || "Login failed")
+    if (error) {
+      throw error
     }
 
-    const data = await response.json()
+    // Get user role from database
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", data.user.id)
+      .single()
 
-    // Store tokens and user data
-    storeAuthTokens(data.tokens)
-    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(data.user))
+    if (userError) {
+      console.error("Error fetching user role:", userError)
+    }
+
+    // Store user data in local storage for easy access
+    if (data.user) {
+      localStorage.setItem(
+        STORAGE_KEYS.USER_DATA,
+        JSON.stringify({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.name,
+          role: userData?.role || data.user.user_metadata?.role || UserRole.USER,
+        }),
+      )
+    }
 
     return data
   } catch (error) {
@@ -167,43 +134,99 @@ export async function loginWithEmailPassword(email: string, password: string) {
 }
 
 /**
+ * Register a new user
+ */
+export async function registerUser(email: string, password: string, name: string, role: UserRole = UserRole.USER) {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error("Supabase client not initialized")
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          role,
+        },
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error("Registration error:", error)
+    throw error
+  }
+}
+
+/**
  * Logout user
  */
 export async function logout() {
-  try {
-    const token = await getAccessToken()
+  const supabase = getSupabaseClient()
+  if (!supabase) return
 
-    if (token) {
-      // Call logout endpoint to invalidate token on server
-      await fetch(AUTH_ENDPOINTS.LOGOUT, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-    }
+  try {
+    await supabase.auth.signOut()
   } catch (error) {
     console.error("Logout error:", error)
   } finally {
-    // Always clear local tokens regardless of server response
-    clearAuthTokens()
+    // Clear local storage
+    localStorage.removeItem(STORAGE_KEYS.USER_DATA)
   }
 }
 
 /**
  * Get current user data
  */
-export function getCurrentUser() {
+export async function getCurrentUser() {
   if (typeof window === "undefined") return null
 
-  const userDataString = localStorage.getItem(STORAGE_KEYS.USER_DATA)
-  if (!userDataString) return null
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
 
-  try {
-    return JSON.parse(userDataString)
-  } catch (error) {
-    console.error("Error parsing user data:", error)
-    return null
+  // Use getUser() instead of user()
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
+
+  if (!user) return null
+
+  // Get user role from database
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("role, name")
+    .eq("id", user.id)
+    .single()
+
+  if (userError) {
+    console.error("Error fetching user data:", userError)
   }
+
+  // Return user data with role from database
+  return {
+    id: user.id,
+    email: user.email,
+    name: userData?.name || user.user_metadata?.name,
+    role: userData?.role || user.user_metadata?.role || UserRole.USER,
+  }
+}
+
+/**
+ * Get access token
+ */
+export async function getAccessToken(): Promise<string | null> {
+  const supabase = getSupabaseClient()
+  if (!supabase) return null
+
+  // Get session using getSession()
+  const { data } = await supabase.auth.getSession()
+  const session = data.session
+
+  return session?.access_token || null
 }

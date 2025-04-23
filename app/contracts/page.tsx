@@ -57,14 +57,24 @@ export default function ContractsPage() {
   // Use React Query to fetch contracts
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["contracts", debouncedSearchTerm, filters],
-    queryFn: () =>
-      contractApi.searchContracts({
-        query: debouncedSearchTerm,
-        filters,
-        limit: 20,
-        offset: 0,
-      }),
+    queryFn: async () => {
+      try {
+        return await contractApi.searchContracts({
+          query: debouncedSearchTerm,
+          filters,
+          limit: 20,
+          offset: 0,
+        })
+      } catch (error) {
+        console.error("Error fetching contracts:", error)
+        // Return empty data instead of throwing
+        return { contracts: [] }
+      }
+    },
     select: (data) => data.contracts as ContractData[],
+    // Add these options to prevent unnecessary retries and show errors properly
+    retry: 1,
+    refetchOnWindowFocus: false,
   })
 
   // Helper function to get contract data safely

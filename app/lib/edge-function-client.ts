@@ -146,6 +146,42 @@ export const contractFunctions = {
 
   // Get form placeholders
   getFormPlaceholders: async (formType: string): Promise<any> => {
+    // Check if we're in a preview environment
+    const isPreview =
+      typeof window !== "undefined" &&
+      (process.env.VERCEL_ENV === "preview" ||
+        process.env.NODE_ENV === "development" ||
+        window.location.hostname === "localhost" ||
+        window.location.hostname.includes("vercel.app"))
+
+    if (isPreview) {
+      console.log("Preview environment detected in getFormPlaceholders, returning default placeholders")
+      // Return default placeholders for preview environments
+      return {
+        id: 0,
+        form_type: formType,
+        title: "Create Bilingual Contract",
+        title_ar: "إنشاء عقد ثنائي اللغة",
+        first_party_label: "First Party Information",
+        first_party_label_ar: "معلومات الطرف الأول",
+        second_party_label: "Second Party Information",
+        second_party_label_ar: "معلومات الطرف الثاني",
+        promoter_label: "Promoter Information",
+        promoter_label_ar: "معلومات المروج",
+        product_location_label: "Product and Location",
+        product_location_label_ar: "المنتج والموقع",
+        contract_period_label: "Contract Period",
+        contract_period_label_ar: "مدة العقد",
+        template_label: "Contract Template",
+        template_label_ar: "نموذج العقد",
+        documents_label: "Documents",
+        documents_label_ar: "المستندات",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    }
+
+    // For production, call the actual Edge Function
     return callEdgeFunction("get-form-placeholders", { formType })
   },
 

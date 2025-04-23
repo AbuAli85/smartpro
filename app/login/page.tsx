@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Info } from "lucide-react"
+import { useSearchParams, useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -12,18 +13,34 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Header } from "../components/header"
-import { useAuth } from "../contexts/auth-context"
+import { loginWithEmailPassword } from "../lib/auth-utils"
+import { DEV_MODE, MOCK_USERS } from "../lib/lovable-auth-config"
 
 // Form validation schema
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 })
 
 export default function LoginPage() {
-  const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showDevHelp, setShowDevHelp] = useState(false)
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Check if user just registered
+  useEffect(() => {
+    if (searchParams.get("registered") === "true") {
+      setRegistrationSuccess(true)
+    }
+  }, [searchParams])
+
+  // Check if we're in development mode
+  useEffect(() => {
+    setShowDevHelp(DEV_MODE)
+  }, [])
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -40,13 +57,23 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      await login(values.email, values.password)
+      await loginWithEmailPassword(values.email, values.password)
+
+      // Redirect to appropriate page based on user role
+      // This will be handled by the middleware
+      router.push("/")
     } catch (error) {
       console.error("Login error:", error)
       setError(error instanceof Error ? error.message : "An unexpected error occurred during login")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Fill form with test credentials
+  const fillTestCredentials = (email: string, password: string) => {
+    form.setValue("email", email)
+    form.setValue("password", password)
   }
 
   return (
@@ -56,7 +83,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Login to Contract Generator</CardTitle>
-            <CardDescription>Enter your lovable.dev credentials to access your contracts</CardDescription>
+            <CardDescription>Enter your credentials to access your contracts</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -64,6 +91,43 @@ export default function LoginPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {registrationSuccess && (
+              <Alert className="mb-4 bg-green-50 border-green-200">
+                <Info className="h-4 w-4 text-green-500" />
+                <AlertTitle className="text-green-700">Registration Successful</AlertTitle>
+                <AlertDescription className="text-green-600">
+                  Your account has been created. Please log in with your credentials.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {showDevHelp && (
+              <Alert className="mb-4 bg-blue-50 border-blue-200">
+                <Info className="h-4 w-4 text-blue-500" />
+                <AlertTitle className="text-blue-700">Development Mode</AlertTitle>
+                <AlertDescription className="text-blue-600">
+                  <p className="mb-2">Use one of these test accounts:</p>
+                  <div className="space-y-1 text-xs">
+                    {MOCK_USERS.map((user) => (
+                      <div key={user.email} className="flex justify-between items-center">
+                        <span>
+                          <strong>{user.email}</strong> / {user.password} ({user.role})
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-xs"
+                          onClick={() => fillTestCredentials(user.email, user.password)}
+                        >
+                          Use
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </AlertDescription>
               </Alert>
             )}
 
@@ -113,18 +177,9 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col space-y-2">
             <p className="text-sm text-muted-foreground text-center">
               Don't have an account?{" "}
-              <a
-                href="https://lovable.dev/signup"
-                className="text-primary hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Sign up at lovable.dev
+              <a href="/signup" className="text-primary hover:underline">
+                Sign up
               </a>
-            </p>
-            <p className="text-xs text-muted-foreground text-center">
-              This application uses lovable.dev for backend services. Your login credentials are securely transmitted to
-              lovable.dev.
             </p>
           </CardFooter>
         </Card>

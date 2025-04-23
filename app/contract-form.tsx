@@ -201,6 +201,14 @@ export default function ContractForm() {
       }
 
       try {
+        // Check if we're in a preview environment
+        const isPreview = process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV === "development"
+
+        if (isPreview) {
+          console.log("Preview environment detected, using default placeholders")
+          return // Use default placeholders in preview
+        }
+
         const data = await edgeFunctions.contract.getFormPlaceholders("contract_form")
         if (data) {
           setPlaceholders(data as FormPlaceholders)

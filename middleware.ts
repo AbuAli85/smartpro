@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { UserRole } from "./types/auth"
+import { createClient } from "@supabase/supabase-js"
 
 // Define route access patterns
 const ROUTE_ACCESS = {
@@ -11,28 +12,61 @@ const ROUTE_ACCESS = {
 }
 
 // Public routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password", "/"]
+const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password", "/", "/api/auth"]
 
-export function middleware(request: NextRequest) {
-  // Get auth token from cookies
-  const authToken = request.cookies.get(process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || "lovable_access_token")?.value
+export async function middleware(request: NextRequest) {
+  // Skip middleware for public routes and static files
+  const { pathname } = request.nextUrl
+  if (
+    PUBLIC_ROUTES.some((route) => pathname.startsWith(route)) ||
+    pathname.includes("_next") ||
+    pathname.includes("favicon.ico")
+  ) {
+    return NextResponse.next()
+  }
 
-  // Get user role from a secure HTTP-only cookie
-  const userRole = request.cookies.get("user_role")?.value
+  // Create a Supabase client for server-side auth checks
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+    },
+  })
 
-  // Check if the path requires authentication
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => request.nextUrl.pathname.startsWith(route))
+  // Get the auth cookie
+  const supabaseAuthCookie = request.cookies.get("sb-auth-token")?.value
 
-  // If no auth token and not a public route, redirect to login
-  if (!authToken && !isPublicRoute) {
+  // If no auth cookie, redirect to login
+  if (!supabaseAuthCookie) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // If authenticated, check role-based access
-  if (authToken && userRole) {
+  try {
+    // Verify the session
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(supabaseAuthCookie)
+
+    if (error || !user) {
+      // Invalid or expired session, redirect to login
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+
+    // Get user role from database
+    const { data: userData, error: userError } = await supabase.from("users").select("role").eq("id", user.id).single()
+
+    if (userError) {
+      console.error("Error fetching user role:", userError)
+      return NextResponse.redirect(new URL("/login", request.url))
+    }
+
+    const userRole = userData?.role || user.user_metadata?.role || UserRole.USER
+
     // Check if the current path has role restrictions
     for (const [path, allowedRoles] of Object.entries(ROUTE_ACCESS)) {
-      if (request.nextUrl.pathname.startsWith(path)) {
+      if (pathname.startsWith(path)) {
         // If user's role is not in the allowed roles, redirect to appropriate page
         if (!allowedRoles.includes(userRole as UserRole)) {
           // Redirect based on role
@@ -48,12 +82,24 @@ export function middleware(request: NextRequest) {
         }
       }
     }
-  }
 
-  return NextResponse.next()
+    // Add user role to request headers for server components
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set("x-user-role", userRole)
+
+    // Continue with the request
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    })
+  } catch (error) {
+    console.error("Auth middleware error:", error)
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
 }
 
 // Configure the middleware to run on specific paths
 export const config = {
-  matcher: ["/admin/:path*", "/company/:path*", "/promoter/:path*", "/contracts/:path*", "/edge-functions/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 }

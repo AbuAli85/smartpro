@@ -40,7 +40,26 @@ export default function EdgeFunctionDemo() {
     setSuccess(false)
 
     try {
-      const response = await edgeFunctions.callQuickProcessor(quickProcessorData)
+      // Check if we're in a preview environment
+      const isPreview =
+        process.env.VERCEL_ENV === "preview" ||
+        process.env.NODE_ENV === "development" ||
+        window.location.hostname === "localhost" ||
+        window.location.hostname.includes("vercel.app")
+
+      let response
+      if (isPreview) {
+        console.log("Preview environment detected, using mock response")
+        // Return a mock response in preview
+        response = {
+          message: `Hello, ${quickProcessorData.name || "World"}! (Preview Mode)`,
+          timestamp: new Date().toISOString(),
+          environment: "preview",
+        }
+      } else {
+        response = await edgeFunctions.callQuickProcessor(quickProcessorData)
+      }
+
       setResult(response)
       setSuccess(true)
     } catch (err) {
@@ -63,7 +82,25 @@ export default function EdgeFunctionDemo() {
     setSuccess(false)
 
     try {
-      const response = await edgeFunctions.generateContract(contractId)
+      // Check if we're in a preview environment
+      const isPreview =
+        process.env.VERCEL_ENV === "preview" ||
+        process.env.NODE_ENV === "development" ||
+        window.location.hostname === "localhost" ||
+        window.location.hostname.includes("vercel.app")
+
+      let response
+      if (isPreview) {
+        console.log("Preview environment detected, using mock response")
+        // Return a mock response in preview
+        response = {
+          contract: `Contract ${contractId} generated (Preview Mode)`,
+          timestamp: new Date().toISOString(),
+          environment: "preview",
+        }
+      } else {
+        response = await edgeFunctions.generateContract(contractId)
+      }
       setResult(response)
       setSuccess(true)
     } catch (err) {
@@ -90,7 +127,26 @@ export default function EdgeFunctionDemo() {
     setSuccess(false)
 
     try {
-      const response = await edgeFunctions.processDocument(parsedData)
+      // Check if we're in a preview environment
+      const isPreview =
+        process.env.VERCEL_ENV === "preview" ||
+        process.env.NODE_ENV === "development" ||
+        window.location.hostname === "localhost" ||
+        window.location.hostname.includes("vercel.app")
+
+      let response
+      if (isPreview) {
+        console.log("Preview environment detected, using mock response")
+        // Return a mock response in preview
+        response = {
+          processed: `Document processed (Preview Mode)`,
+          data: parsedData,
+          timestamp: new Date().toISOString(),
+          environment: "preview",
+        }
+      } else {
+        response = await edgeFunctions.processDocument(parsedData)
+      }
       setResult(response)
       setSuccess(true)
     } catch (err) {
