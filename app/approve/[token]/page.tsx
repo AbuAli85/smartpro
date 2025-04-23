@@ -1,15 +1,32 @@
-import { createClient } from "@supabase/supabase-js"
 import { redirect } from "next/navigation"
 import { approveToken } from "@/app/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { getServerSupabaseClient } from "@/lib/supabase-client"
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Check if we're in a preview environment
+const isPreviewEnvironment = process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV === "development"
+
+// Create a mock token for preview environments
+function createMockToken(tokenValue: string) {
+  return {
+    token: tokenValue,
+    contract_id: "mock-id-" + Math.random().toString(36).substring(2, 9),
+    party_role: Math.random() > 0.5 ? "first_party" : "second_party",
+    party_name: Math.random() > 0.5 ? "Mock First Party" : "Mock Second Party",
+    used: false,
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    promoter_contracts: {
+      id: "mock-contract-id",
+      created_at: new Date().toISOString(),
+    },
+  }
+}
 
 export default async function ApprovalPage({ params }: { params: { token: string } }) {
+  // Use our utility function to get the Supabase client
+  const supabase = getServerSupabaseClient()
+
   // Get token information
   const { data: token, error } = await supabase
     .from("approval_tokens")
@@ -17,7 +34,10 @@ export default async function ApprovalPage({ params }: { params: { token: string
     .eq("token", params.token)
     .single()
 
-  if (error || !token) {
+  // If we're in a preview environment and there's an error, use mock data
+  const tokenData = error && isPreviewEnvironment ? createMockToken(params.token) : token
+
+  if (error && !isPreviewEnvironment) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Card className="w-full max-w-md">
@@ -31,7 +51,7 @@ export default async function ApprovalPage({ params }: { params: { token: string
   }
 
   // Check if token is already used
-  if (token.used) {
+  if (tokenData.used) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Card className="w-full max-w-md">
@@ -41,7 +61,7 @@ export default async function ApprovalPage({ params }: { params: { token: string
           </CardHeader>
           <CardFooter>
             <Button asChild className="w-full">
-              <a href={`/contracts/${token.contract_id}`}>View Contract</a>
+              <a href={`/contracts/${tokenData.contract_id}`}>View Contract</a>
             </Button>
           </CardFooter>
         </Card>
@@ -50,7 +70,7 @@ export default async function ApprovalPage({ params }: { params: { token: string
   }
 
   // Check if token is expired
-  if (new Date(token.expires_at) < new Date()) {
+  if (new Date(tokenData.expires_at) < new Date()) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Card className="w-full max-w-md">
@@ -76,20 +96,29 @@ export default async function ApprovalPage({ params }: { params: { token: string
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      {isPreviewEnvironment && (
+        <div className="absolute top-4 left-4 right-4 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+          <p className="font-medium">Preview Mode</p>
+          <p className="text-sm">
+            This is a preview using mock data. In production, this would use real data from the database.
+          </p>
+        </div>
+      )}
+
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Approve Contract</CardTitle>
           <CardDescription>
-            You are approving a contract as {token.party_name} (
-            {token.party_role === "first_party" ? "First Party" : "Second Party"})
+            You are approving a contract as {tokenData.party_name} (
+            {tokenData.party_role === "first_party" ? "First Party" : "Second Party"})
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
               <h3 className="font-medium">Contract Details</h3>
-              <p className="text-sm text-gray-500">Contract ID: {token.contract_id}</p>
-              <p className="text-sm text-gray-500">Expires: {new Date(token.expires_at).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-500">Contract ID: {tokenData.contract_id}</p>
+              <p className="text-sm text-gray-500">Expires: {new Date(tokenData.expires_at).toLocaleDateString()}</p>
             </div>
             <div className="border-t pt-4">
               <p>
@@ -106,7 +135,7 @@ export default async function ApprovalPage({ params }: { params: { token: string
             </Button>
           </form>
           <Button variant="outline" asChild className="w-full">
-            <a href={`/contracts/${token.contract_id}`}>View Contract First</a>
+            <a href={`/contracts/${tokenData.contract_id}`}>View Contract First</a>
           </Button>
         </CardFooter>
       </Card>
