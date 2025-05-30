@@ -42,28 +42,17 @@ export default function SignUpPage() {
     }
     setIsLoading(true)
     try {
-      // Optionally, you can pass additional user metadata here
-      // const { data, error } = await supabase.auth.signUp({
-      //   email,
-      //   password,
-      //   options: {
-      //     data: {
-      //       full_name: 'Optional Full Name', // if you add a field for this
-      //     }
-      //   }
-      // });
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {}, // Add this line to pass an empty object for user_metadata
+        },
       })
 
       if (error) {
         toast({ title: "Sign Up Failed", description: error.message, variant: "destructive" })
       } else if (data.user && data.user.identities && data.user.identities.length === 0) {
-        // This condition might indicate that the user already exists but is unconfirmed or has some other issue.
-        // Supabase signUp might return a user object even if "User already registered" if "Confirm email" is off.
-        // Or if "Confirm email" is on, and user exists but is unconfirmed, it might resend confirmation.
-        // It's better to rely on specific error messages or check if data.session is null when confirmation is required.
         toast({
           title: "Sign Up Issue",
           description:
@@ -71,21 +60,17 @@ export default function SignUpPage() {
           variant: "warning",
         })
       } else if (data.user && !data.session) {
-        // This case typically means "Confirm email" is ON, and Supabase sent a confirmation email.
         toast({
           title: "Sign Up Successful! Please Confirm Your Email",
           description:
             "We've sent a confirmation link to your email address. Please check your inbox (and spam folder).",
-          duration: 10000, // Longer duration for this important message
+          duration: 10000,
         })
-        router.push("/login") // Redirect to login, they can't use app until confirmed
+        router.push("/login")
       } else if (data.user && data.session) {
-        // This case means "Confirm email" is OFF, or it's a social sign-up (not applicable here).
-        // User is signed up and logged in.
         toast({ title: "Sign Up Successful!", description: "Redirecting to dashboard..." })
         router.push("/dashboard")
       } else {
-        // Fallback for unexpected response
         toast({
           title: "Sign Up Attempted",
           description: "Please check your email or try logging in.",
@@ -106,7 +91,8 @@ export default function SignUpPage() {
   if (isCheckingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/40">
-        <p>Loading...</p>
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="ml-2">Loading...</p>
       </div>
     )
   }
@@ -142,7 +128,7 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                minLength={6} // Supabase default minimum password length
+                minLength={6}
               />
             </div>
             <div className="grid gap-2">
