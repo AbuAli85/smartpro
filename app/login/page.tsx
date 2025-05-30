@@ -1,189 +1,116 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Loader2, AlertCircle, Info } from "lucide-react"
-import { useSearchParams, useRouter } from "next/navigation"
-
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Header } from "../components/header"
-import { loginWithEmailPassword } from "../lib/auth-utils"
-import { DEV_MODE, MOCK_USERS } from "../lib/lovable-auth-config"
-
-// Form validation schema
-const formSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
-})
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { type FormEvent, useEffect, useState } from "react"
+import { toast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showDevHelp, setShowDevHelp] = useState(false)
-  const [registrationSuccess, setRegistrationSuccess] = useState(false)
-  const searchParams = useSearchParams()
   const router = useRouter()
+  const supabase = createClient()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingUser, setIsCheckingUser] = useState(true)
 
-  // Check if user just registered
   useEffect(() => {
-    if (searchParams.get("registered") === "true") {
-      setRegistrationSuccess(true)
+    const checkUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session) {
+        router.replace("/dashboard")
+      } else {
+        setIsCheckingUser(false)
+      }
     }
-  }, [searchParams])
+    checkUser()
+  }, [supabase, router])
 
-  // Check if we're in development mode
-  useEffect(() => {
-    setShowDevHelp(DEV_MODE)
-  }, [])
-
-  // Initialize form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  })
-
-  // Handle form submission
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     setIsLoading(true)
-    setError(null)
-
     try {
-      await loginWithEmailPassword(values.email, values.password)
-
-      // Redirect to appropriate page based on user role
-      // This will be handled by the middleware
-      router.push("/")
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) {
+        toast({ title: "Login Failed", description: error.message, variant: "destructive" })
+      } else {
+        toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
+        router.push("/dashboard") // Or router.refresh() if middleware handles redirect
+      }
     } catch (error) {
-      console.error("Login error:", error)
-      setError(error instanceof Error ? error.message : "An unexpected error occurred during login")
+      toast({ title: "An unexpected error occurred", description: String(error), variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Fill form with test credentials
-  const fillTestCredentials = (email: string, password: string) => {
-    form.setValue("email", email)
-    form.setValue("password", password)
+  // Optionally, add a link to a sign-up page or OAuth providers
+  // const handleOAuthLogin = async (provider: 'google' | 'github') => {
+  //   setIsLoading(true);
+  //   await supabase.auth.signInWithOAuth({ provider });
+  //   setIsLoading(false);
+  // };
+
+  if (isCheckingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/40">
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   return (
-    <>
-      <Header />
-      <div className="flex items-center justify-center min-h-[calc(100vh-64px)] p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Login to Contract Generator</CardTitle>
-            <CardDescription>Enter your credentials to access your contracts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {registrationSuccess && (
-              <Alert className="mb-4 bg-green-50 border-green-200">
-                <Info className="h-4 w-4 text-green-500" />
-                <AlertTitle className="text-green-700">Registration Successful</AlertTitle>
-                <AlertDescription className="text-green-600">
-                  Your account has been created. Please log in with your credentials.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {showDevHelp && (
-              <Alert className="mb-4 bg-blue-50 border-blue-200">
-                <Info className="h-4 w-4 text-blue-500" />
-                <AlertTitle className="text-blue-700">Development Mode</AlertTitle>
-                <AlertDescription className="text-blue-600">
-                  <p className="mb-2">Use one of these test accounts:</p>
-                  <div className="space-y-1 text-xs">
-                    {MOCK_USERS.map((user) => (
-                      <div key={user.email} className="flex justify-between items-center">
-                        <span>
-                          <strong>{user.email}</strong> / {user.password} ({user.role})
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-6 text-xs"
-                          onClick={() => fillTestCredentials(user.email, user.password)}
-                        >
-                          Use
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="your.email@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
-              </form>
-            </Form>
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your email below to login to your account.</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleLogin}>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <p className="text-sm text-muted-foreground text-center">
-              Don't have an account?{" "}
-              <a href="/signup" className="text-primary hover:underline">
-                Sign up
-              </a>
-            </p>
+          <CardFooter className="flex flex-col gap-4">
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </Button>
+            {/* Example OAuth
+            <Button variant="outline" className="w-full" onClick={() => handleOAuthLogin('google')} disabled={isLoading}>
+              Sign in with Google
+            </Button> */}
           </CardFooter>
-        </Card>
-      </div>
-    </>
+        </form>
+      </Card>
+    </div>
   )
 }
