@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
+import Link from "next/link" // Import Link
 import { useRouter } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
 import { toast } from "@/hooks/use-toast"
+import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -40,7 +42,6 @@ export default function LoginPage() {
         password,
       })
       if (error) {
-        // The error object from Supabase should contain the detailed message
         console.error("Supabase login error object:", error)
         toast({
           title: "Login Failed",
@@ -97,6 +98,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                placeholder="••••••••"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -106,8 +108,15 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="underline hover:text-primary">
+                Sign Up
+              </Link>
+            </p>
           </CardFooter>
         </form>
       </Card>
