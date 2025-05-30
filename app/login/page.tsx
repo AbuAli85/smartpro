@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
-import Link from "next/link" // Import Link
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
 import { toast } from "@/hooks/use-toast"
@@ -41,11 +41,17 @@ export default function LoginPage() {
         email,
         password,
       })
+
       if (error) {
         console.error("Supabase login error object:", error)
+        let description = error.message || "An unknown error occurred."
+        if (error.message.toLowerCase().includes("invalid login credentials")) {
+          description =
+            "The email or password you entered is incorrect. Please double-check your details or sign up if you don't have an account."
+        }
         toast({
           title: "Login Failed",
-          description: error.message || "An unknown error occurred.",
+          description: description,
           variant: "destructive",
         })
       } else {
