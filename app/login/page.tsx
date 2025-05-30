@@ -40,31 +40,36 @@ export default function LoginPage() {
         password,
       })
       if (error) {
-        toast({ title: "Login Failed", description: error.message, variant: "destructive" })
+        // The error object from Supabase should contain the detailed message
+        console.error("Supabase login error object:", error)
+        toast({
+          title: "Login Failed",
+          description: error.message || "An unknown error occurred.",
+          variant: "destructive",
+        })
       } else {
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." })
-        router.push("/dashboard") // Or router.refresh() if middleware handles redirect
+        router.push("/dashboard")
       }
-    } catch (error) {
-      toast({ title: "An unexpected error occurred", description: String(error), variant: "destructive" })
+    } catch (error: any) {
+      console.error("Catch block error during login:", error)
+      toast({
+        title: "An unexpected error occurred",
+        description: error.message || String(error),
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Optionally, add a link to a sign-up page or OAuth providers
-  // const handleOAuthLogin = async (provider: 'google' | 'github') => {
-  //   setIsLoading(true);
-  //   await supabase.auth.signInWithOAuth({ provider });
-  //   setIsLoading(false);
-  // };
-
+  // THIS IS THE CRUCIAL LOGGING PART:
   useEffect(() => {
-    console.log("--- LOGIN PAGE ENV VAR CHECK ---")
-    console.log("NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-    console.log("NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    console.log("--- LOGIN PAGE ENV VAR CHECK (on component mount) ---")
+    console.log("Value of process.env.NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log("Value of process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     console.log("--- END LOGIN PAGE ENV VAR CHECK ---")
-  }, [])
+  }, []) // Empty dependency array means this runs once when the component mounts
 
   if (isCheckingUser) {
     return (
@@ -111,10 +116,6 @@ export default function LoginPage() {
             <Button className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
-            {/* Example OAuth
-            <Button variant="outline" className="w-full" onClick={() => handleOAuthLogin('google')} disabled={isLoading}>
-              Sign in with Google
-            </Button> */}
           </CardFooter>
         </form>
       </Card>
