@@ -59,6 +59,13 @@ export default function LoginPage() {
   //   setIsLoading(false);
   // };
 
+  useEffect(() => {
+    console.log("--- LOGIN PAGE ENV VAR CHECK ---")
+    console.log("NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log("NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    console.log("--- END LOGIN PAGE ENV VAR CHECK ---")
+  }, [])
+
   if (isCheckingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/40">
