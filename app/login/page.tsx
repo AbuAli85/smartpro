@@ -63,14 +63,6 @@ export default function LoginPage() {
     }
   }
 
-  // THIS IS THE CRUCIAL LOGGING PART:
-  useEffect(() => {
-    console.log("--- LOGIN PAGE ENV VAR CHECK (on component mount) ---")
-    console.log("Value of process.env.NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-    console.log("Value of process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    console.log("--- END LOGIN PAGE ENV VAR CHECK ---")
-  }, []) // Empty dependency array means this runs once when the component mounts
-
   if (isCheckingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/40">
