@@ -3,6 +3,7 @@ import type { Template } from "@/types"
 import ContractGeneratorForm from "./contract-generator-form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileText, ListChecks, BarChart2 } from "lucide-react"
+import ContractHistoryTab from "./contract-history-tab" // Import the new component
 
 export default async function DashboardPage() {
   const supabase = createSupabaseServerClient()
@@ -13,14 +14,10 @@ export default async function DashboardPage() {
 
   if (templatesError) {
     console.error("Error fetching templates:", templatesError)
-    // Handle error display appropriately
     return <p className="text-red-500">Error loading contract templates: {templatesError.message}</p>
   }
 
   const templates: Template[] = templatesData || []
-
-  // Placeholder for contracts and reports data, will be fetched in their respective components/tabs
-  // const { data: contractsData, error: contractsError } = await supabase.from("contracts").select("*, templates(name), profiles(full_name)");
 
   return (
     <div className="space-y-6">
@@ -41,8 +38,7 @@ export default async function DashboardPage() {
           <ContractGeneratorForm templates={templates} />
         </TabsContent>
         <TabsContent value="history" className="mt-6">
-          {/* Placeholder for Contract History Component */}
-          <p className="text-muted-foreground">Contract history will be displayed here.</p>
+          <ContractHistoryTab /> {/* Render the new component here */}
         </TabsContent>
         <TabsContent value="reports" className="mt-6">
           {/* Placeholder for Reports Component */}
